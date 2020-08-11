@@ -1,17 +1,38 @@
 ---
 layout: post
-title:  "graphics-principle & PBR"
+title:  "Graphics-principle & PBR"
 date:   2018-11-21 10:00:00 +0800
 categories: engine
 ---
-### graphics-principle & PBR
+### Graphics-principle & PBR
 
 ## 渲染是什么
 渲染是一个 CPU 驱动引擎，引擎驱动 OpenGL，OpenGL 驱动 GPU 修改显存的过程。<br>
-VRAM（显存）包括图像缓冲区、深度缓冲、顶点缓冲区、纹理图。<br>
+VRAM（显存）包括图像缓冲区、深度缓冲、顶点缓冲区、纹理图，显存大小经常决定了渲染的效率。<br>
 
+这是渲染的基础驱动流程，<br>
 Application -> Command -> Geometry -> Rasterization -> Fragment -> Display<br>
+下面我用伪代码大概写一下渲染管线需要做那些处理，方便理解。<br>
 
+{% highlight CG %}
+InitializeCamera
+ClearZbuffer
+SetLightAndFog
+FilterVisibleGeometrys(Camera Frustum and PVS or Software Culling or Hardware Culling)
+foreach VisibleGeometry  : FilterVisibleGeometrys
+	foreach Triangle : VisibleGeometry.Mesh
+		Transform Triangle To View Cullling Space
+		Vertex Light
+		Face Culling
+		Transform Triangle To Screen Space
+		Triangle Rasterization
+		foreach Pixel : Triangle
+			if (ZTest & AlphaTest)
+				Render Pixel
+				Write Pixel
+{% endhighlight %}
+				
+<br>
 ## 渲染管线详解
 
 1. 描述了3D模型的几何数据结构;
@@ -96,6 +117,7 @@ Vertex program 的输出是 Fragment program 的输入。<br>
 ![](/images/graphics-principle2.png)<br>
 
 ## 光照模型以及 PBR 
+### 光照模型
 **漫反射<br>**
 
 粗糙的物体表面向各个方向等强度地反射光，这种等同地向各个方向散射的现象称为光的漫反射（diffuse reflection）。<br>
@@ -124,16 +146,18 @@ specular = Ks x lightColor x facing x (max(N · H, 0)) shininess <br>
 7. P is the point being shaded, and
 8. facing is 1 if N · L is greater than 0, and 0 otherwise.
 
+![](/images/graphics-principle6.png)<br>
+
 **环境光<br>**
 
 ambient = Ka x globalAmbient<br>
 1. Ka is the material's ambient reflectance and
 2. globalAmbient is the color of the incoming ambient light.
 
-**Final Color<br>**
+**最终像素<br>**
 
 surfaceColor = emissive + ambient + diffuse + specular<br>
-基于上面的算法，我写了个测试 Shader，通过 Shader Toggle 切换显示 Final Surface Color各个组成部分。<br>
+基于上面的算法，我写了个测试 Shader，通过 Shader Toggle 切换显示 Final Surface Color 各个组成部分。<br>
 
 {% highlight CG %}
 fixed3 lightDir = normalize(UnityWorldSpaceLightDir(worldPos));
